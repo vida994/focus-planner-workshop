@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Focus planner</title>
+    <link rel="stylesheet" href="/style.css">
+    <script src="/app.js" type="module" defer></script>
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">PERSONAL PLANNER</p>
+      <h1>Focus planner</h1>
+      <p class="intro">Choose a useful task for the time you have. Add work with a title, a minute estimate, and where you can do it.</p>
+
+      <div id="storage-banner" class="storage-banner" hidden>
+        <p id="storage-banner-text"></p>
+        <div class="task-actions" id="storage-banner-actions">
+          <button type="button" class="secondary" id="retry-save" hidden>Retry saving</button>
+          <button type="button" class="secondary" id="export-copy" hidden>Export this copy</button>
+          <button type="button" class="secondary" id="reload-saved" hidden>Reload saved tasks</button>
+          <button type="button" class="secondary" id="recover-restore" hidden>Restore backup</button>
+          <button type="button" class="danger" id="start-empty" hidden>Start empty</button>
+        </div>
+      </div>
+      <p id="storage-confirm" class="filter-notice" hidden>
+        <span id="storage-confirm-text"></span>
+        <button type="button" class="danger" id="storage-confirm-yes">Replace</button>
+        <button type="button" class="secondary" id="storage-confirm-no">Cancel</button>
+      </p>
+      <p id="storage-error" class="error" role="alert" hidden></p>
+
+      <form id="add-form" novalidate>
+        <div class="form-top">
+          <h2 class="form-heading" id="form-heading">Add a task</h2>
+          <fieldset class="mode-switch">
+            <legend>Mode</legend>
+            <div class="context-options" role="group" aria-label="Task or Goal">
+              <label class="choice">
+                <input type="radio" name="mode" value="task" checked>
+                <span>Task</span>
+              </label>
+              <label class="choice">
+                <input type="radio" name="mode" value="goal">
+                <span>Goal</span>
+              </label>
+            </div>
+          </fieldset>
+        </div>
+
+        <div class="field">
+          <label for="entry-text" id="entry-label">Task</label>
+          <textarea id="entry-text" name="entry" rows="3" autocomplete="off" spellcheck="true" aria-describedby="entry-hint entry-error"></textarea>
+          <p id="entry-hint" class="hint"><span id="entry-count">0</span> / <span id="entry-limit">200</span> characters</p>
+          <p id="entry-error" class="error" hidden></p>
+        </div>
+
+        <div id="task-only">
+          <div class="field">
+            <label for="task-minutes">Estimated minutes</label>
+            <input id="task-minutes" name="minutes" type="text" inputmode="numeric" autocomplete="off" aria-describedby="minutes-hint minutes-error">
+            <p id="minutes-hint" class="hint">Enter a whole number from 1 to 1,440. Split longer tasks into smaller steps.</p>
+            <p id="minutes-error" class="error" hidden></p>
+          </div>
+
+          <fieldset class="context-fieldset">
+            <legend>Context</legend>
+            <p class="hint">A device label you can change later. It does not filter the list.</p>
+            <div class="context-options">
+              <label class="choice">
+                <input type="radio" name="context" value="anywhere" checked>
+                <span>Anywhere</span>
+              </label>
+              <label class="choice">
+                <input type="radio" name="context" value="laptop">
+                <span>Laptop</span>
+              </label>
+              <label class="choice">
+                <input type="radio" name="context" value="phone">
+                <span>Phone</span>
+              </label>
+            </div>
+          </fieldset>
+        </div>
+
+        <p class="hint ai-send-hint">Only the text in this box is sent through the local server. Your saved list is not sent. Example: <span id="ai-example">Buy milk</span>.</p>
+
+        <div id="ai-waiting" class="ai-waiting" hidden>
+          <p id="ai-waiting-text">Waiting for Grok…</p>
+          <button type="button" class="secondary" id="ai-cancel">Cancel</button>
+        </div>
+        <p id="ai-error" class="error" role="alert" hidden></p>
+        <p id="form-error" class="error" role="alert" hidden></p>
+
+        <div id="estimate-proposal" class="estimate-proposal" hidden>
+          <p id="estimate-proposal-text"></p>
+          <button type="button" class="secondary" id="accept-estimate">Use this estimate</button>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="secondary" id="estimate-button">Estimate with Grok</button>
+          <button type="button" class="secondary" id="breakdown-button" hidden>Break down into tasks with Grok</button>
+          <button type="submit" id="add-button">Add task</button>
+        </div>
+      </form>
+
+      <section class="list-section" id="review-section" aria-labelledby="review-heading" hidden>
+        <h2 id="review-heading">Review suggested tasks</h2>
+        <p class="hint">These are rough suggestions. Choose the steps you are ready to do. Selecting a later step does not complete an earlier one. The original goal is not added as a task.</p>
+        <p id="review-goal" class="review-goal"></p>
+        <p id="discard-banner" class="filter-notice" hidden>
+          <span id="discard-text">Discard this review? Your edits and selections will be lost.</span>
+          <button type="button" class="danger" id="discard-confirm">Discard</button>
+          <button type="button" class="secondary" id="discard-cancel">Cancel</button>
+        </p>
+        <div class="task-actions review-toolbar">
+          <button type="button" class="secondary" id="select-all">Select all</button>
+          <button type="button" class="secondary" id="deselect-all">Deselect all</button>
+        </div>
+        <ul id="suggestion-list" class="task-list"></ul>
+        <p id="review-error" class="error" role="alert" hidden></p>
+        <div class="task-actions">
+          <button type="button" class="primary" id="add-selected" disabled>Add selected tasks (0)</button>
+          <button type="button" class="secondary" id="edit-goal">Edit goal</button>
+          <button type="button" class="secondary" id="try-again">Try again</button>
+          <button type="button" class="secondary" id="cancel-review">Cancel review</button>
+        </div>
+      </section>
+
+      <section class="list-section" aria-labelledby="unfinished-heading">
+        <div class="list-header">
+          <h2 id="unfinished-heading">Tasks</h2>
+          <p id="undo-banner" class="undo-banner" hidden>
+            <span id="undo-message"></span>
+            <button type="button" id="undo-button">Undo</button>
+          </p>
+        </div>
+
+        <div class="time-filter">
+          <p id="time-question" class="time-question">How much time do you have?</p>
+          <div class="filter-buttons" role="group" aria-labelledby="time-question">
+            <button type="button" class="filter-button" data-preset="5">5 minutes</button>
+            <button type="button" class="filter-button" data-preset="10">10 minutes</button>
+            <button type="button" class="filter-button" data-preset="15">15 minutes</button>
+            <button type="button" class="filter-button" data-preset="30">30 minutes</button>
+            <button type="button" class="filter-button" data-preset="60">60 minutes</button>
+            <button type="button" class="filter-button" id="other-filter-button" aria-expanded="false" aria-controls="custom-filter-form">Other</button>
+            <button type="button" class="filter-button" id="all-times-button" aria-pressed="true">All times</button>
+          </div>
+          <form id="custom-filter-form" class="custom-filter" hidden novalidate>
+            <label for="custom-minutes">Minutes</label>
+            <div class="custom-filter-row">
+              <input id="custom-minutes" name="custom-minutes" type="text" inputmode="numeric" autocomplete="off" aria-describedby="custom-minutes-error">
+              <button type="submit" class="primary">Apply</button>
+            </div>
+            <p id="custom-minutes-error" class="error" hidden></p>
+          </form>
+          <p id="active-time" class="hint">Showing all times.</p>
+        </div>
+
+        <p id="filter-notice" class="filter-notice" hidden>
+          <span id="filter-notice-text"></span>
+          <button type="button" id="filter-notice-button" class="secondary">All times</button>
+        </p>
+        <p id="filter-guidance" class="hint filter-guidance" hidden>These tasks fit your estimate. Choose one you are ready to do.</p>
+        <p id="unfinished-empty" class="empty" hidden>
+          <span id="unfinished-empty-text">No tasks yet. Add one above.</span>
+          <button type="button" id="empty-all-times" class="secondary" hidden>All times</button>
+        </p>
+        <ul id="unfinished-list" class="task-list"></ul>
+      </section>
+
+      <section class="list-section" id="completed-section" aria-labelledby="completed-heading" hidden>
+        <details id="completed-details">
+          <summary>
+            <h2 id="completed-heading">Completed <span id="completed-count" class="count">0</span></h2>
+          </summary>
+          <ul id="completed-list" class="task-list"></ul>
+        </details>
+      </section>
+
+      <section class="list-section" aria-labelledby="backup-heading">
+        <h2 id="backup-heading">Backup</h2>
+        <p class="hint">Export or restore a JSON copy of saved tasks. Drafts, mode, time filters, and unapplied Grok suggestions are not included.</p>
+        <div class="task-actions">
+          <button type="button" class="secondary" id="export-backup">Export backup</button>
+          <button type="button" class="secondary" id="restore-backup">Restore backup</button>
+        </div>
+        <input id="restore-file" type="file" accept="application/json,.json" hidden>
+      </section>
+    </main>
+  </body>
+</html>
